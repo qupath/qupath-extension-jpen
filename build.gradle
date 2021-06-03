@@ -22,11 +22,21 @@ task extractLibs(type: Copy) {
 compileJava.dependsOn(extractLibs)
 
 repositories {
+  mavenCentral()
+  
   flatDir {
     dirs "${buildDir}/unpacked/${libName}/"
   }
-  mavenLocal()
-  mavenCentral()
+  
+  maven {
+    name = "GitHubPackages"
+    url = uri("https://maven.pkg.github.com/qupath/qupath")
+    credentials {
+      username = project.findProperty("github.packages.user") ?: System.getenv("USERNAME")
+      password = project.findProperty("github.packages.key") ?: System.getenv("TOKEN")
+    }
+  }
+  
 }
 
 dependencies {  
