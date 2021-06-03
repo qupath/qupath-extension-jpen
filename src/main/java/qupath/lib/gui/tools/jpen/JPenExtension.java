@@ -25,9 +25,19 @@ package qupath.lib.gui.tools.jpen;
 
 import java.awt.Point;
 import java.awt.geom.Point2D.Float;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
-
+import java.util.Map;
+import java.util.function.BiPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +54,11 @@ import jpen.event.PenListener;
 import jpen.event.PenManagerListener;
 import jpen.owner.PenClip;
 import jpen.owner.PenOwner;
+import jpen.provider.NativeLibraryLoader;
 import jpen.provider.osx.CocoaProvider;
 import jpen.provider.wintab.WintabProvider;
 import jpen.provider.xinput.XinputProvider;
+import qupath.lib.common.GeneralTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.extensions.QuPathExtension;
 import qupath.lib.gui.viewer.tools.QuPathPenManager;
@@ -66,21 +78,155 @@ public class JPenExtension implements QuPathExtension {
 	private static boolean alreadyInstalled = false;
 	
 	private static int defaultFrequency = 40;
+	
+	private static boolean nativeLibraryLoaded = false;
+	
+	static {
+		try {
+			nativeLibraryLoaded = loadNativeLibrary();
+			if (nativeLibraryLoaded)
+				logger.debug("Native library loaded");
+			else
+				logger.debug("Unable to preload JPen native library (I couldn't find it)");
+		} catch (Throwable t) {
+			logger.warn("Unable to preload JPen native library: " + t.getLocalizedMessage(), t);
+		}
+	}
+
 
 	@Override
-	public void installExtension(QuPathGUI qupath) {
+	public synchronized void installExtension(QuPathGUI qupath) {
 		if (alreadyInstalled)
 			return;
+		try {
+			loadNativeLibrary();
+		} catch (Throwable t) {
+			logger.warn("Unable to preload JPen native library: " + t.getLocalizedMessage(), t);
+		}
 		try {
 			PenManager pm = new PenManager(new PenOwnerFX());
 			pm.pen.setFirePenTockOnSwing(false);
 			pm.pen.setFrequencyLater(defaultFrequency);
 			PenInputManager manager = new JPenInputManager(pm);
 			QuPathPenManager.setPenManager(manager);
+			alreadyInstalled = true;
 		} catch (Throwable t) {
-			logger.debug("Unable to add JPen support", t);
+			logger.warn("Unable to add JPen support: " + t.getLocalizedMessage(), t);
 		}
 	}
+
+
+	/**
+	 * Try to load native library from the extension jar.
+	 * @throws URISyntaxException
+	 * @throws IOException
+	 * @throws SecurityException
+	 * @throws NoSuchFieldException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 */
+	private static boolean loadNativeLibrary() throws URISyntaxException, IOException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		URL url = JPenExtension.class.getClassLoader().getResource("natives");
+		logger.debug("JPen url: {}", url);
+		if (url == null)
+			return false;
+		URI uri = url.toURI();
+		Path path;
+		if (uri.getScheme().equals("jar")) {
+			try (var fs = FileSystems.newFileSystem(uri, Map.of())) {
+				var pathRoot = fs.getPath("natives");
+				path = extractLib(pathRoot);
+			}
+		} else {
+			path = Files.find(Paths.get(uri), 1, createMatcher()).findFirst().orElse(null);
+		}
+		if (Files.isRegularFile(path)) {
+			logger.trace("Loading {}", path);
+			System.load(path.toAbsolutePath().toString());
+			
+			// Try to update for the providers we use
+			logger.trace("Updating cocoa");
+			setLoaded(CocoaProvider.class);
+			logger.trace("Updating xinput");
+			setLoaded(XinputProvider.class);
+			logger.trace("Updating wintab");
+			setLoaded(WintabProvider.class);
+
+			return true;
+		} else {
+			logger.debug("Path is not a regular file: {}", path);
+			return false;
+		}
+	}
+	
+	/**
+	 * In order to avoid forking JPen and support loading a native library from a jar, 
+	 * we need to override the behavior of NativeLibraryLoader (which uses System.loadLibrary).
+	 * If we have successfully loaded a library, we need to toggle the 'loaded' flag by reflection.
+	 * 
+	 * @param cls
+	 * @throws NoSuchFieldException
+	 * @throws SecurityException
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 */
+	static void setLoaded(Class<?> cls) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		var field = NativeLibraryLoader.class.getDeclaredField("loaded");
+		field.setAccessible(true);
+
+		var loader = cls.getDeclaredField("LIB_LOADER");
+		loader.setAccessible(true);
+		var obj = loader.get(cls);
+
+		field.setBoolean(obj, true);
+	}
+	
+	/**
+	 * Extract native library to a temp file.
+	 * @param pathRoot
+	 * @return
+	 * @throws IOException
+	 */
+	private static Path extractLib(Path pathRoot) throws IOException {
+		var path = Files.find(pathRoot, 1, createMatcher()).findFirst().orElse(null);
+		if (path == null)
+			return null;
+		logger.debug("JPen path to extract: {}", path);
+		Path tempDir = Files.createTempDirectory("qupath-");
+		Path tempFile = tempDir.resolve(pathRoot.relativize(path).toString());
+		logger.trace("Requesting delete on exit");
+		tempDir.toFile().deleteOnExit();
+		tempFile.toFile().deleteOnExit();
+		logger.debug("Copying {} to {}", path, tempFile);
+		Files.copy(path, tempFile);
+		logger.debug("Copy completed, new file size {}", tempFile.toFile().length());
+		return tempFile;
+	}
+
+	private static BiPredicate<Path, BasicFileAttributes> createMatcher() {
+		if (GeneralTools.isMac())
+			return (p, a) -> matchLib(p, a, ".jnilib", ".dylib");
+		if (GeneralTools.isWindows())
+			return (p, a) -> matchLib(p, a, "64.dll");
+		if (GeneralTools.isMac())
+			return (p, a) -> matchLib(p, a, "64.so");
+		return (p, a) -> false;
+	}
+
+	private static boolean matchLib(Path path, BasicFileAttributes attr, String... exts) {
+		if (attr.isDirectory())
+			return false;
+		var name = path.getFileName().toString().toLowerCase();
+		logger.trace("Checking name: {} against {}", name, Arrays.asList(exts));
+		if (!name.startsWith("jpen") && !name.startsWith("libjpen"))
+			return false;
+		for (var ext : exts) {
+			if (name.endsWith(ext))
+				return true;
+		}
+		return false;
+	}
+
 
 	@Override
 	public String getName() {

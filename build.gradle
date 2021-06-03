@@ -1,12 +1,57 @@
 plugins {
-  id 'qupath.extension-conventions'
   id 'java-library'
+  // To create a shadow/fat jar, including dependencies
+  id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 ext.moduleName = 'qupath.extension.jpen'
-archivesBaseName = 'qupath-extension-pen'
+archivesBaseName = 'qupath-extension-jpen'
 description = "QuPath extension to support graphic tablet input using JPen."
 
-configurations {
-  implementation.extendsFrom jpen
+version = "0.3.0-SNAPSHOT"
+
+def libName = "jpen-2.0.0"
+def libZipped = file("libs/${libName}-lib.zip")
+def libUnzipped = file("${buildDir}/unpacked/")
+
+task extractLibs(type: Copy) {
+    from zipTree(libZipped)
+    into libUnzipped
+}
+
+compileJava.dependsOn(extractLibs)
+
+repositories {
+  flatDir {
+    dirs "${buildDir}/unpacked/${libName}/"
+  }
+  mavenLocal()
+  mavenCentral()
+}
+
+dependencies {  
+  implementation name: "jpen", version: "2"
+  
+  shadow "io.github.qupath:qupath-gui-fx:0.3.0-SNAPSHOT"
+  shadow "org.slf4j:slf4j-api:1.7.25"
+}
+
+jar {
+  from ("${buildDir}/unpacked/${libName}") {
+    into 'natives/'
+
+    include '*.dll'
+    include '*.jnilib'
+    include '*.so'
+  }
+}
+
+shadowJar {
+  from ("${buildDir}/unpacked/${libName}") {
+    into 'natives/'
+    
+    include '*.dll'
+    include '*.jnilib'
+    include '*.so'
+  } 
 }
