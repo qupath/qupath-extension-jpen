@@ -20,16 +20,17 @@ tasks.register ("extractLibs", Copy) {
   
     from zipTree(libZipped)
     into libUnzipped
+    doLast {
+    println "This happens"
+    }
 }
 
-compileJava.dependsOn(extractLibs)
+compileJava.configure {
+  dependsOn(extractLibs)
+}
 
 repositories {
   mavenCentral()
-  
-  flatDir {
-    dirs "${buildDir}/unpacked/${libName}/"
-  }
   
   maven {
     url "https://maven.scijava.org/content/repositories/releases"
@@ -42,7 +43,8 @@ repositories {
 }
 
 dependencies {  
-  implementation name: "jpen", version: "2"
+  // Lazily evaluate this to avoid problems during configuration
+  implementation fileTree(dir: "${buildDir}/unpacked/${libName}", include: "jpen-2.jar")
   
   shadow "io.github.qupath:qupath-gui-fx:0.3.0-SNAPSHOT"
   shadow "org.slf4j:slf4j-api:1.7.30"
