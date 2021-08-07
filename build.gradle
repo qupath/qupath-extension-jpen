@@ -20,9 +20,6 @@ tasks.register ("extractLibs", Copy) {
   
     from zipTree(libZipped)
     into libUnzipped
-    doLast {
-    println "This happens"
-    }
 }
 
 compileJava.configure {
@@ -64,4 +61,19 @@ shadowJar {
     include '*.jnilib'
     include '*.so'
   } 
+}
+
+
+java {
+    def version = project.findProperty('toolchain')
+    if (!version)
+        version = 11
+    else if (version.strip() == 'skip')
+        version = null
+    if (version != null) {
+        logger.quiet("Setting toolchain to {}", version)
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(version)
+        }
+    }
 }
