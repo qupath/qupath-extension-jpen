@@ -21,7 +21,7 @@
  * #L%
  */
 
-package qupath.lib.gui.tools.jpen;
+package qupath.ext.jpen;
 
 import java.awt.Point;
 import java.awt.geom.Point2D.Float;
@@ -59,7 +59,9 @@ import jpen.provider.osx.CocoaProvider;
 import jpen.provider.wintab.WintabProvider;
 import jpen.provider.xinput.XinputProvider;
 import qupath.lib.common.GeneralTools;
+import qupath.lib.common.Version;
 import qupath.lib.gui.QuPathGUI;
+import qupath.lib.gui.extensions.GitHubProject;
 import qupath.lib.gui.extensions.QuPathExtension;
 import qupath.lib.gui.viewer.tools.QuPathPenManager;
 import qupath.lib.gui.viewer.tools.QuPathPenManager.PenInputManager;
@@ -71,7 +73,7 @@ import qupath.lib.gui.viewer.tools.QuPathPenManager.PenInputManager;
  * @author Pete Bankhead
  *
  */
-public class JPenExtension implements QuPathExtension {
+public class JPenExtension implements QuPathExtension, GitHubProject {
 	
 	private static Logger logger = LoggerFactory.getLogger(JPenExtension.class);
 	
@@ -113,6 +115,17 @@ public class JPenExtension implements QuPathExtension {
 		} catch (Throwable t) {
 			logger.warn("Unable to add JPen support: " + t.getLocalizedMessage(), t);
 		}
+	}
+	
+	
+	@Override
+	public Version getQuPathVersion() {
+		return Version.parse("v0.3.0");
+	}
+	
+	@Override
+	public GitHubRepo getRepository() {
+		return GitHubRepo.create(getName(), "qupath", "qupath-extension-jpen");
 	}
 
 
