@@ -8,7 +8,7 @@ ext.moduleName = 'qupath.extension.jpen'
 archivesBaseName = 'qupath-extension-jpen'
 description = "QuPath extension to support graphic tablet input using JPen."
 
-version = "0.3.0-SNAPSHOT"
+version = "0.3.0-rc2"
 
 def libName = "jpen-2.0.0"
 def libZipped = file("libs/${libName}-lib.zip")
@@ -43,7 +43,7 @@ dependencies {
   // Lazily evaluate this to avoid problems during configuration
   implementation fileTree(dir: "${buildDir}/unpacked/${libName}", include: "jpen-2.jar")
   
-  shadow "io.github.qupath:qupath-gui-fx:0.3.0-SNAPSHOT"
+  shadow "io.github.qupath:qupath-gui-fx:0.3.0-rc2"
   shadow "org.slf4j:slf4j-api:1.7.30"
 }
 
