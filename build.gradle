@@ -43,7 +43,7 @@ dependencies {
   // Lazily evaluate this to avoid problems during configuration
   implementation fileTree(dir: "${buildDir}/unpacked/${libName}", include: "jpen-2.jar")
   
-  shadow "io.github.qupath:qupath-gui-fx:0.3.0-SNAPSHOT"
+  shadow "io.github.qupath:qupath-gui-fx:0.3.0-rc2"
   shadow "org.slf4j:slf4j-api:1.7.30"
 }
 
