@@ -120,7 +120,7 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 	
 	@Override
 	public Version getQuPathVersion() {
-		return Version.parse("v0.3.0");
+		return Version.parse("0.3.0-rc2");
 	}
 	
 	@Override

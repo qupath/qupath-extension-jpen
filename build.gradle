@@ -17,7 +17,7 @@ def libUnzipped = file("${buildDir}/unpacked/")
 tasks.register ("extractLibs", Copy) {
     description "Extract JPen library (required before building)"
     group 'QuPath'
-  
+
     from zipTree(libZipped)
     into libUnzipped
 }
@@ -29,21 +29,21 @@ compileJava.configure {
 repositories {
 //  mavenLocal()
   mavenCentral()
-  
+
   maven {
     url "https://maven.scijava.org/content/repositories/releases"
   }
-  
+
   maven {
     url "https://maven.scijava.org/content/repositories/snapshots"
   }
-  
+
 }
 
-dependencies {  
+dependencies {
   // Lazily evaluate this to avoid problems during configuration
   implementation fileTree(dir: "${buildDir}/unpacked/${libName}", include: "jpen-2.jar")
-  
+
   shadow "io.github.qupath:qupath-gui-fx:0.3.0"
   shadow "org.slf4j:slf4j-api:1.7.30"
 }
@@ -57,11 +57,11 @@ processResources {
 shadowJar {
   from ("${buildDir}/unpacked/${libName}") {
     into 'natives/'
-    
+
     include '*.dll'
     include '*.jnilib'
     include '*.so'
-  } 
+  }
 }
 
 
