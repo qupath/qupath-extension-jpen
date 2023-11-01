@@ -60,6 +60,7 @@ import jpen.provider.wintab.WintabProvider;
 import jpen.provider.xinput.XinputProvider;
 import qupath.lib.common.GeneralTools;
 import qupath.lib.common.Version;
+import qupath.lib.gui.ExtensionClassLoader;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.extensions.GitHubProject;
 import qupath.lib.gui.extensions.QuPathExtension;
