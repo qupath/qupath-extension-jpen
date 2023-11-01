@@ -1,18 +1,20 @@
 plugins {
-  id 'java-library'
-  // To create a shadow/fat jar, including dependencies
-  id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'java-library'
+    // To create a shadow/fat jar, including dependencies
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 ext.moduleName = 'qupath.extension.jpen'
 archivesBaseName = 'qupath-extension-jpen'
 description = "QuPath extension to support graphic tablet input using JPen."
 
-version = "0.3.0"
+version = "0.4.0"
+ext.qupathJavaVersion = 17
+ext.qupathVersion = "0.5.0-rc2"
 
 def libName = "jpen-2.0.0"
 def libZipped = file("libs/${libName}-lib.zip")
-def libUnzipped = file("${buildDir}/unpacked/")
+def libUnzipped = file("${layout.getBuildDirectory().get()}/unpacked/")
 
 tasks.register ("extractLibs", Copy) {
     description "Extract JPen library (required before building)"
@@ -23,7 +25,7 @@ tasks.register ("extractLibs", Copy) {
 }
 
 compileJava.configure {
-  dependsOn(extractLibs)
+    dependsOn(extractLibs)
 }
 
 repositories {
@@ -42,10 +44,10 @@ repositories {
 
 dependencies {
   // Lazily evaluate this to avoid problems during configuration
-  implementation fileTree(dir: "${buildDir}/unpacked/${libName}", include: "jpen-2.jar")
+    implementation fileTree(dir: "${layout.getBuildDirectory().get()}/unpacked/${libName}", include: "jpen-2.jar")
 
-  shadow "io.github.qupath:qupath-gui-fx:0.3.0"
-  shadow "org.slf4j:slf4j-api:1.7.30"
+    implementation "io.github.qupath:qupath-gui-fx:${qupathVersion}"
+    shadow "org.slf4j:slf4j-api:1.7.30"
 }
 
 processResources {
@@ -55,7 +57,7 @@ processResources {
 }
 
 shadowJar {
-  from ("${buildDir}/unpacked/${libName}") {
+  from ("${layout.getBuildDirectory().get()}/unpacked/${libName}") {
     into 'natives/'
 
     include '*.dll'
@@ -64,11 +66,10 @@ shadowJar {
   }
 }
 
-
 java {
     def version = project.findProperty('toolchain')
     if (!version)
-        version = 11
+        version = 17
     else if (version.strip() == 'skip')
         version = null
     if (version != null) {
