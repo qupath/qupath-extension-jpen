@@ -75,21 +75,17 @@ import qupath.lib.gui.viewer.tools.QuPathPenManager.PenInputManager;
  */
 public class JPenExtension implements QuPathExtension, GitHubProject {
 	
-	private static Logger logger = LoggerFactory.getLogger(JPenExtension.class);
+	private static final Logger logger = LoggerFactory.getLogger(JPenExtension.class);
 	
 	private static boolean alreadyInstalled = false;
-	
-	private static int defaultFrequency = 40;
-	
-	private static boolean nativeLibraryLoaded = false;
-	
+
 	static {
 		try {
-			nativeLibraryLoaded = loadNativeLibrary();
+			boolean nativeLibraryLoaded = loadNativeLibrary();
 			if (nativeLibraryLoaded)
-				logger.debug("Native library loaded");
+				logger.info("Native library loaded");
 			else
-				logger.debug("Unable to preload JPen native library (I couldn't find it)");
+				logger.info("Unable to preload JPen native library (I couldn't find it)");
 		} catch (Throwable t) {
 			logger.warn("Unable to preload JPen native library: " + t.getLocalizedMessage(), t);
 		}
@@ -108,6 +104,7 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 		try {
 			PenManager pm = new PenManager(new PenOwnerFX());
 			pm.pen.setFirePenTockOnSwing(false);
+			int defaultFrequency = 40;
 			pm.pen.setFrequencyLater(defaultFrequency);
 			PenInputManager manager = new JPenInputManager(pm);
 			QuPathPenManager.setPenManager(manager);
@@ -139,20 +136,24 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 	 * @throws IllegalArgumentException
 	 */
 	private static boolean loadNativeLibrary() throws URISyntaxException, IOException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		URL url = JPenExtension.class.getClassLoader().getResource("natives");
+		URL url = ExtensionClassLoader.getInstance().getResource("natives");
 		logger.debug("JPen url: {}", url);
 		if (url == null)
-			return false;
+			throw new IOException("Unable to find JPen");
 		URI uri = url.toURI();
 		Path path;
 		if (uri.getScheme().equals("jar")) {
-			try (var fs = FileSystems.newFileSystem(uri, Map.of())) {
+			try (var fs = FileSystems.newFileSystem(uri, Map.of(), ExtensionClassLoader.getInstance())) {
 				var pathRoot = fs.getPath("natives");
 				path = extractLib(pathRoot);
 			}
 		} else {
-			path = Files.find(Paths.get(uri), 1, createMatcher()).findFirst().orElse(null);
+			try (var stream = Files.find(Paths.get(uri), 1, createMatcher())) {
+				path = stream.findFirst().orElse(null);
+			}
 		}
+		if (path == null)
+			throw new IOException("Unable to extract JPen natives");
 		if (Files.isRegularFile(path)) {
 			logger.trace("Loading {}", path);
 			System.load(path.toAbsolutePath().toString());
@@ -196,9 +197,8 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 	
 	/**
 	 * Extract native library to a temp file.
-	 * @param pathRoot
-	 * @return
-	 * @throws IOException
+	 * @param pathRoot The file or folder to extract
+	 * @return Path to the extracted file
 	 */
 	private static Path extractLib(Path pathRoot) throws IOException {
 		var path = Files.find(pathRoot, 1, createMatcher()).findFirst().orElse(null);
@@ -221,7 +221,7 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 			return (p, a) -> matchLib(p, a, ".jnilib", ".dylib");
 		if (GeneralTools.isWindows())
 			return (p, a) -> matchLib(p, a, "64.dll");
-		if (GeneralTools.isMac())
+		if (GeneralTools.isLinux())
 			return (p, a) -> matchLib(p, a, "64.so");
 		return (p, a) -> false;
 	}
