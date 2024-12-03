@@ -1,0 +1,19 @@
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		maven {
+			url = uri("https://maven.scijava.org/content/repositories/releases")
+		}
+	}
+}
+
+includeBuild("../qupath-gradle-plugin")
+
+qupath {
+	version = "0.5.0"
+}
+
+// Apply QuPath Gradle settings plugin to handle configuration
+plugins {
+	id("io.github.qupath.qupath-extension-settings") version "0.1.0"
+}
