@@ -7,8 +7,6 @@ pluginManagement {
 	}
 }
 
-includeBuild("../qupath-gradle-plugin")
-
 qupath {
 	version = "0.5.0"
 }
