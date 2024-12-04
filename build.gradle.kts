@@ -42,12 +42,11 @@ dependencies {
 
 	implementation(fileTree(project.layout.buildDirectory.file("unpacked/${libName}")) { include("jpen-2.jar") })
 
-	val qupathVersion = "0.5.0"
-	shadow("io.github.qupath:qupath-gui-fx:$qupathVersion")
+	shadow(libs.bundles.qupath)
 	shadow(libs.bundles.logging)
 
 	// For testing
-	testImplementation("io.github.qupath:qupath-gui-fx:$qupathVersion")
+	testImplementation(libs.bundles.qupath)
 	testImplementation(libs.junit)
 
 }
