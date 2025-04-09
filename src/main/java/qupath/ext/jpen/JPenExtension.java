@@ -60,7 +60,6 @@ import jpen.provider.wintab.WintabProvider;
 import jpen.provider.xinput.XinputProvider;
 import qupath.lib.common.GeneralTools;
 import qupath.lib.common.Version;
-import qupath.lib.gui.ExtensionClassLoader;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.extensions.GitHubProject;
 import qupath.lib.gui.extensions.QuPathExtension;
@@ -137,14 +136,14 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 	 * @throws IllegalArgumentException
 	 */
 	private static boolean loadNativeLibrary() throws URISyntaxException, IOException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		URL url = ExtensionClassLoader.getInstance().getResource("natives");
+		URL url = QuPathGUI.getExtensionCatalogManager().getExtensionClassLoader().getResource("natives");
 		logger.debug("JPen url: {}", url);
 		if (url == null)
 			throw new IOException("Unable to find JPen");
 		URI uri = url.toURI();
 		Path path;
 		if (uri.getScheme().equals("jar")) {
-			try (var fs = FileSystems.newFileSystem(uri, Map.of(), ExtensionClassLoader.getInstance())) {
+			try (var fs = FileSystems.newFileSystem(uri, Map.of(), QuPathGUI.getExtensionCatalogManager().getExtensionClassLoader().getInstance())) {
 				var pathRoot = fs.getPath("natives");
 				path = extractLib(pathRoot);
 			}
