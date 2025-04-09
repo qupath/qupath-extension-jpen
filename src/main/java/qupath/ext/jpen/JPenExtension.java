@@ -143,7 +143,7 @@ public class JPenExtension implements QuPathExtension, GitHubProject {
 		URI uri = url.toURI();
 		Path path;
 		if (uri.getScheme().equals("jar")) {
-			try (var fs = FileSystems.newFileSystem(uri, Map.of(), QuPathGUI.getExtensionCatalogManager().getExtensionClassLoader().getInstance())) {
+			try (var fs = FileSystems.newFileSystem(uri, Map.of(), QuPathGUI.getExtensionCatalogManager().getExtensionClassLoader())) {
 				var pathRoot = fs.getPath("natives");
 				path = extractLib(pathRoot);
 			}
