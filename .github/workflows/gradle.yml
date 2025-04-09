@@ -15,7 +15,5 @@
        with:
          java-version: '21'
          distribution: 'temurin'
-     - name: Grant execute permission for gradlew
-       run: chmod +x gradlew
      - name: Build with Gradle
        run: ./gradlew build -P toolchain=21
