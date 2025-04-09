@@ -15,8 +15,6 @@
        with:
          java-version: '21'
          distribution: 'temurin'
-     - name: Grant execute permission for gradlew
-       run: chmod +x gradlew
      - name: Build with Gradle
        run: ./gradlew shadowJar -P toolchain=21
      - uses: actions/upload-artifact@v2
