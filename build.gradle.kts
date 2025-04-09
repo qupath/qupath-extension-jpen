@@ -44,7 +44,7 @@ dependencies {
 
 	shadow(libs.bundles.qupath)
 	shadow(libs.bundles.logging)
-	implementation(libs.extensionmanager)
+	shadow(libs.extensionmanager)
 
 	// For testing
 	testImplementation(libs.bundles.qupath)
