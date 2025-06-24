@@ -6,7 +6,7 @@ plugins {
 
 qupathExtension {
 	name = "qupath-extension-jpen"
-	version = "0.4.0-SNAPSHOT"
+	version = "0.4.0"
 	group = "io.github.qupath"
 	description = "QuPath extension to support graphic tablet input using JPen"
 	automaticModule = "qupath.extension.jpen"
@@ -44,6 +44,7 @@ dependencies {
 
 	shadow(libs.bundles.qupath)
 	shadow(libs.bundles.logging)
+	shadow(libs.extensionmanager)
 
 	// For testing
 	testImplementation(libs.bundles.qupath)
