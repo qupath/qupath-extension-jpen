@@ -32,7 +32,7 @@ tasks.shadowJar {
 	from(project.layout.buildDirectory.file("unpacked/${libName}")) {
 		into("natives/")
 
-		include("'*.dll")
+		include("*.dll")
 		include("*.jnilib")
 		include("*.so")
 	}
